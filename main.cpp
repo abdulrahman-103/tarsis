@@ -1,17 +1,21 @@
-//Copyright (C) 2026 Abdulrahman
-//This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-//This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
-//You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-#include "raylib/raylib.h"
+#include <cstdlib>
 #include <stdlib.h>
 #include <math.h>
+#include <random>
+#include "vexa/Event.hpp"
+#include "vexa/core/Key.hpp"
+#include "vexa/core/colors.hpp"
+#include "vexa/core/vec.hpp"
+#include "vexa/vexa.hpp"
+
+int fps = 60;
+float frametime = 1000.0f / fps;
+
 typedef enum {I, L, J, O, T, S, Z} PieceType;
 
 typedef struct {
         int column;
         int row;
-        Color color;
     } Block;
 
 typedef struct {
@@ -204,7 +208,7 @@ void place_piece(PieceType piece_type, char grid[20][10]){
 
     for (int block = 0; block < 4; block++){
         if (grid[current_piece.blocks[block].row][current_piece.blocks[block].column] == 1){
-            CloseWindow();
+            vexa::Engine::Close();
             exit(0);
         }
         grid[current_piece.blocks[block].row][current_piece.blocks[block].column] = 1;
@@ -960,7 +964,7 @@ void clear_row(char grid[20][10], float *clear_row_timer, float clear_row_timer_
         }
         if (cleared){
             if (!already_added){
-            *clear_row_timer += GetFrameTime();
+            *clear_row_timer += frametime;
             already_added = true;
             }
             if (*clear_row_timer >= clear_row_timer_interval){
@@ -982,96 +986,129 @@ void clear_row(char grid[20][10], float *clear_row_timer, float clear_row_timer_
     }
 }
 
-int main(void){
-    //SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(100, 200, "ترصيص — Tarsis");
 
-    const int monitor = GetCurrentMonitor();
-    const int monitor_height = GetMonitorHeight(monitor);
-    const int monitor_width = GetMonitorWidth(monitor);
-    int block_length;
-    float window_height = monitor_height * 0.65;
-    float window_width = window_height/2;
+/*
+int main(void){
+    
+    SetWindowSize(window_width - block_margin, window_height - block_margin);
+    */
+
+int random(int start, int end){
+    static thread_local std::mt19937 prng{std::random_device{}()};
+    std::uniform_int_distribution<int> range(start, end);
+    return range(prng);
+}
+
+using namespace vexa;
+int main()
+{
+    int real_y = 720;
+    int real_x = real_y / 2;
+
+    int block_length = real_x / 10;
+    int block_margin = block_length / 15;
     float gravity_timer = 0.0f;
-    float gravity_timer_interval = 0.5f;
+    float gravity_timer_interval = 500.0f;
     float fast_gravity_interval = gravity_timer_interval/8;
     float clear_row_timer = 0.0f;
-    const float clear_row_timer_interval = 0.2f;
+    const float clear_row_timer_interval = 200.0f;
     float spawn_timer = 0.0f;
-    const float spawn_timer_interval = 0.25f;
+    const float spawn_timer_interval = 250.0f;
     float sideways_timer = 0.0f;
-    const float sideways_timer_interval = 0.1f;
+    const float sideways_timer_interval = 100.0f;
 
-    SetWindowMinSize(monitor_width/8, monitor_width/4);
-    SetWindowSize(window_width, window_height);
-    SetWindowPosition((monitor_width -  window_width) / 2, (monitor_height - window_height) / 2);
-    Image icon = LoadImage("icon.png");
-    SetWindowIcon(icon);
-    UnloadImage(icon);
-    SetTargetFPS(60);
-    block_length = ceil(GetScreenHeight() / 20.0f);
-    int block_margin = block_length / 15;
-    SetWindowSize(window_width - block_margin, window_height - block_margin);
-    char grid[20][10] = {0};
-            
-    int random_piece = GetRandomValue(0, 6);
+    char grid[20][10] = {0};  
+    PieceType random_piece = static_cast<PieceType>(random(0, 6));
     place_piece(random_piece, grid);
 
-    while (!WindowShouldClose()){
-        if (IsKeyPressed(KEY_X) || IsKeyPressed(KEY_UP) || IsKeyPressed(KEY_W)){
-            rotate(grid, true);
-        }
+    // Initialize Vexa
+    Engine::Init(Engine::VIDEO);
 
-        if (IsKeyPressed(KEY_Z)){
-            rotate(grid, false);
-        }
+    // create a window with 720x720 size and default renderer
+    int x = real_x - block_margin;
+    int y = real_y - block_margin;
+    auto window = Window{}
+        .setSize(Vec2i(x, y))
+        .setTitle("Tarsis")
+        .setRenderer(Renderer::Cfg{})
+        .create();
+    
+    window.setResizable(true);
 
-        if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_DOWN)){
-            physics(grid);
-            gravity_timer = 0.0f;
-        }
-        if (IsKeyDown(KEY_S) || IsKeyDown(KEY_DOWN)){
-            gravity_timer_interval = fast_gravity_interval;
-        }
-        else {
-            gravity_timer_interval = 0.5f;
-        }
+    auto& gfx = window.renderer();
 
-        if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)){
-            right(grid);
-            sideways_timer -= 0.25f;
-        }
+    Vec2i old_size = window.size();
+    bool released = true;
+    bool running = true;
+    while (running)
+    {
+        // poll events
+        while (auto event = Event::Poll()) {
 
-        if (IsKeyDown(KEY_D) || IsKeyDown(KEY_RIGHT)){
-            sideways_timer += GetFrameTime();
-        if (sideways_timer >= sideways_timer_interval){
-            sideways_timer -= sideways_timer_interval;
-            right(grid);
+            if (sideways_timer >= sideways_timer_interval){
+                sideways_timer -= sideways_timer_interval;
+                right(grid);
             }
-        }
-
-        if (IsKeyReleased(KEY_D) || IsKeyReleased(KEY_RIGHT)){
-            sideways_timer = 0.0f;
-        }
-
-        if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)){
-            left(grid);
-            sideways_timer -= 0.25f;
-        }
-
-        if (IsKeyDown(KEY_A) || IsKeyDown(KEY_LEFT)){
-            sideways_timer += GetFrameTime();
-        if (sideways_timer >= sideways_timer_interval){
+            if (sideways_timer >= sideways_timer_interval){
             sideways_timer -= sideways_timer_interval;
             left(grid);
             }
+            switch (event->type()) {
+                case Event::QUIT: { running = false; break; }
+                case Event::KEY_DOWN: {
+                    //down
+                    if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
+                        gravity_timer_interval = fast_gravity_interval;
+                    }
+                    else if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
+                        sideways_timer += frametime;
+                    }
+                    else if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
+                        sideways_timer += frametime;
+                    }
+                    if (!released){
+                        break;
+                    }
+                    // pressed
+                    if (event->kb().key == Key::ESC) { running = false; }
+                    else if (event->kb().key == Key::X || event->kb().key == Key::UP || event->kb().key == Key::W) {
+                        rotate(grid, true);
+                    }
+                    else if (event->kb().key == Key::Z) {
+                        rotate(grid, false);
+                    }
+                    else if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
+                        physics(grid);
+                        gravity_timer = 0.0f;
+                    }
+                    else if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
+                        right(grid);
+                        sideways_timer -= 250.0f;
+                    }
+                    else if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
+                        left(grid);
+                        sideways_timer -= 250.0f;
+                    }
+                }
+                case Event::KEY_UP: {
+                    released = true;
+                    if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
+                        sideways_timer = 0.0f;
+                    }
+                    else if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
+                        sideways_timer = 0.0f;
+                    }
+                    else if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
+                        gravity_timer_interval = 500.0f;
+                    }
+                }
+                default: { break; }
+            }
         }
+        
 
-        if (IsKeyReleased(KEY_A) || IsKeyReleased(KEY_LEFT)){
-            sideways_timer = 0.0f;
-        }
 
-        gravity_timer += GetFrameTime();
+        gravity_timer += frametime;
         if (gravity_timer >= gravity_timer_interval){
             gravity_timer -= gravity_timer_interval;
             physics(grid);
@@ -1082,29 +1119,53 @@ int main(void){
         }
 
         if (!current_piece.active){
-            spawn_timer += GetFrameTime();
+            spawn_timer += frametime;
             if (spawn_timer >= spawn_timer_interval){
                 spawn_timer = 0;
-                int random_piece = GetRandomValue(0, 6);
+                random_piece = static_cast<PieceType>(random(0, 6));
                 place_piece(random_piece, grid);
             }
         }
 
-        BeginDrawing();
-        ClearBackground(BLACK);
+        // preserve window aspect ratio
+        if (window.size() != old_size){
+            auto real_x = window.size().x;
+            auto real_y = window.size().y;
+            block_length = real_x / 10;
+            block_margin = block_length / 15;
+            x = real_x - block_margin;
+            y = real_y - block_margin;
+            if (window.size().x != old_size.x){
+                window.setSize(Vec2i(x,x * 2));
+            }
+            else{
+                window.setSize(Vec2i(y / 2, y));
+            }
+            old_size = window.size();
+        }
+
+        gfx.start(ColorU8::BLACK);
+
         for (int row = 0; row < 20 ;row++){
             for (int column = 0; column < 10 ;column++){
                 if (grid[row][column] == 1){
-                    DrawRectangle(column * block_length, row * block_length, block_length - block_margin, block_length - block_margin, WHITE);
+                    gfx.rectFill(
+                        Rect{
+                            static_cast<float>(column * block_length),
+                            static_cast<float>(row * block_length),
+                            static_cast<float>(block_length - block_margin),
+                            static_cast<float>(block_length - block_margin)
+                        },
+                        ColorU8::WHITE
+                    );
                 }
             }
         }
 
-        EndDrawing();
+        gfx.finish();
+        time::sleep(time::Millis(frametime));
 
     }
 
-    CloseWindow();
-
-    return 0;
+    Engine::Close();
 }
