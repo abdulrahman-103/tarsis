@@ -1,3 +1,9 @@
+/*
+Vexa port of Tarsis
+SPDX-License-Identifier: MIT
+Copyright (c) 2026 Abdulrahman 103
+*/
+
 #include <random>
 #include "vexa/vexa.hpp"
 
