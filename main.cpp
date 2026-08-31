@@ -1,6 +1,3 @@
-#include <cstdlib>
-#include <stdlib.h>
-#include <math.h>
 #include <random>
 #include "vexa/vexa.hpp"
 
@@ -826,8 +823,6 @@ void rotate(char grid[20][10], bool clockwise){
             }
         }
     }
-
-
     if (success){current_piece.rot = target_rot;}
 }
 
@@ -982,13 +977,6 @@ void clear_row(char grid[20][10], float *clear_row_timer, float clear_row_timer_
     }
 }
 
-
-/*
-int main(void){
-    
-    SetWindowSize(window_width - block_margin, window_height - block_margin);
-    */
-
 int random(int start, int end){
     static thread_local std::mt19937 prng{std::random_device{}()};
     std::uniform_int_distribution<int> range(start, end);
@@ -996,30 +984,29 @@ int random(int start, int end){
 }
 
 using namespace vexa;
-int main()
-{
-    int real_y = 720;
-    int real_x = real_y / 2;
-    float block_length = real_x / 10.0f;
-    float block_margin = block_length / 15.0f;
-    float gravity_timer = 0.0f;
-    float gravity_timer_interval = 500.0f;
-    float fast_gravity_interval = gravity_timer_interval/8;
-    float clear_row_timer = 0.0f;
-    const float clear_row_timer_interval = 200.0f;
-    float spawn_timer = 0.0f;
-    const float spawn_timer_interval = 250.0f;
+int main() {
+    int real_y = 720; // window height before removing block margins
+    int real_x = real_y / 2; // window width before removing block margins
+    float block_length = real_x / 10.0f; // length of block
+    float block_margin = block_length / 15.0f; // margin between blocks
+    int x = real_x - block_margin; // window height after removing block margins
+    int y = real_y - block_margin; // window width after removing block margins
+    float gravity_timer = 0.0f; // initialize gravity timer so that it activates each interval
+    float gravity_timer_interval = 500.0f; // gravity timer interval
+    float fast_gravity_interval = gravity_timer_interval/8; // gravity timer interval when pressing down arrow or S button
+    float clear_row_timer = 0.0f; // initialize the timer for clearing rows
+    const float clear_row_timer_interval = 200.0f; // interval for the time to clear a row
+    float spawn_timer = 0.0f; // initialize the timer for spawning rows
+    const float spawn_timer_interval = 250.0f; // 50 ms more than clear_row_timer_interval
 
-    char grid[20][10] = {0};
-    PieceType random_piece = static_cast<PieceType>(random(0, 6));
-    place_piece(random_piece, grid);
+    char grid[20][10] = {0}; // the grid where the blocks exist
+    PieceType random_piece = static_cast<PieceType>(random(0, 6)); // chooses a random piece
+    place_piece(random_piece, grid); // places a random piece
 
     // Initialize Vexa
     Engine::Init(Engine::VIDEO);
 
     // create a window with 720x720 size and default renderer
-    int x = real_x - block_margin;
-    int y = real_y - block_margin;
     auto window = Window{}
         .setSize(Vec2i(x, y))
         .setTitle("Tarsis")
@@ -1028,33 +1015,29 @@ int main()
     
     window.setResizable(true);
     window.setAspectRatio(0.5, 0.5);
-
-    auto& gfx = window.renderer();
-
-    Vec2i old_size = window.size();
-    bool released = true;
+    auto& gfx = window.renderer(); 
     bool running = true;
     while (running)
     {
-        block_length = window.size().x / 10.0f;
-        block_margin = block_length / 15.0f;
-
-
+        block_length = window.size().x / 10.0f; // update block_length if window is resized
+        block_margin = block_length / 15.0f; // update block_margin if window is resized
         // poll events
         while (auto event = Event::Poll()) {
             switch (event->type()) {
                 case Event::QUIT: { running = false; break; }
                 case Event::KEY_DOWN: {
-                    //down
+                    // make gravity fast when S or DOWN is pressed
                     if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
                         gravity_timer_interval = fast_gravity_interval;
                     }
-
-                    if (event->kb().key == Key::ESC) { running = false; }
+                    if (event->kb().key == Key::ESC) { running = false; } // exit game
                     
+                    // rotate clockwise, "&& !event->kb().repeated" makes it a 1 time press instead of a repeated event
                     if ((event->kb().key == Key::X || event->kb().key == Key::UP || event->kb().key == Key::W) && !event->kb().repeated) {
                         rotate(grid, true);
                     }
+
+                    // // rotate counter-clockwise, "&& !event->kb().repeated" makes it a 1 time press instead of a repeated event
                     if (event->kb().key == Key::Z && !event->kb().repeated) {
                         rotate(grid, false);
                     }
@@ -1069,24 +1052,26 @@ int main()
                     }
                 }
                 case Event::KEY_UP: {
+                    // return gravity to normal speed when S or DOWN is released
                     if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
                         gravity_timer_interval = 500.0f;
                     }
                 }
-                default: { break; }
             }
         }
-        
+        // move pieces down (physics()) each time gravity timer reaches interval and reset it
         gravity_timer += frametime;
         if (gravity_timer >= gravity_timer_interval){
-            gravity_timer -= gravity_timer_interval;
+            gravity_timer = 0;
             physics(grid);
         }
         
+        // if piece isn't active (stopped moving) then check if the row should be cleared and clear it if so
         if (!current_piece.active) {
             clear_row(grid, &clear_row_timer, clear_row_timer_interval);
         }
 
+        // if piece isn't active (stopped moving) then increase spawn_timer by frametime and if it becomes greater or equal to the interval reset the timer and place a random piece
         if (!current_piece.active){
             spawn_timer += frametime;
             if (spawn_timer >= spawn_timer_interval){
@@ -1096,8 +1081,10 @@ int main()
             }
         }
 
+        // start rendering and reset the window content to black
         gfx.start(ColorU8::BLACK);
 
+        // draw the white pieces on top of the black background
         for (int row = 0; row < 20 ;row++){
             for (int column = 0; column < 10 ;column++){
                 if (grid[row][column] == 1){
@@ -1113,11 +1100,12 @@ int main()
                 }
             }
         }
-
+        // finish rendering
         gfx.finish();
+
+        // sleep for 16.666ms (60fps)
         time::sleep(time::Millis(frametime));
-
     }
-
+    // close the window
     Engine::Close();
 }
