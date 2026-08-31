@@ -35,6 +35,8 @@ enum class KeyMod : uint16
     SHIFT =  SHIFT_L | SHIFT_R,
     ALT   =  ALT_L   | ALT_R,
     META  =  META_L  | META_R,
+
+    COUNT = 18
 };
 
 
@@ -181,6 +183,8 @@ enum class Key : uint16
 
     // DYNAMIC KEYS //
     RESERVED = 400,
+
+    COUNT = 512
 };
 
 
@@ -188,7 +192,7 @@ enum class Key : uint16
 
 
 //  KEYCODES  // physical key codes
-enum class KeyCode : uint32
+enum class Keycode : uint32
 {
     EXTENDED_MASK = (1u << 29),
     SCANCODE_MASK = (1u << 30),
@@ -284,16 +288,17 @@ enum class KeyCode : uint32
     LEFT_TAB = EXTENDED_MASK | 0x1u, LEVEL5_SHIFT = EXTENDED_MASK | 0x2u,
     MULTI_KEY_COMPOSE = EXTENDED_MASK | 0x3u,
     META_L = EXTENDED_MASK | 0x4u, META_R = EXTENDED_MASK | 0x5u,
-    HYPER_L = EXTENDED_MASK | 0x6u, YPER_R = EXTENDED_MASK | 0x7u
+    HYPER_L = EXTENDED_MASK | 0x6u, HYPER_R = EXTENDED_MASK | 0x7u,
+
+    COUNT = 536'870'920
 };
 
 
 
 
-using KeyModValueT = underlying_t<KeyMod>;
-using KeyValueT = underlying_t<Key>;
-using KeyCodeValueT = underlying_t<KeyCode>;
-
+using KeyModValueT = enum_t<KeyMod>;
+using KeyValueT = enum_t<Key>;
+using KeycodeValueT = enum_t<Keycode>;
 
 
 
@@ -301,7 +306,7 @@ using KeyCodeValueT = underlying_t<KeyCode>;
 GEN_BITOPS(KeyMod, KeyModValueT);  // wrapped to a macro now
 
 constexpr bool operator== (const KeyMod first, const KeyMod second) {
-    return CAST(KeyModValueT, first) == CAST(KeyModValueT, second);
+    return CAST<KeyModValueT>(first) == CAST<KeyModValueT>(second);
 }
 
 
@@ -312,7 +317,7 @@ constexpr bool filterMods(KeyMod source, KeyMod has, KeyMod has_not=KeyMod::NONE
 
 // Key/KeyCode methods
 template<KeyValueT in>  // this is a c++14 template variable if you are a boomer
-constexpr KeyCodeValueT sc_to_kc = in | (KeyCodeValueT)KeyCode::SCANCODE_MASK;
+constexpr KeycodeValueT keyToKeycode = in | (KeycodeValueT)Keycode::SCANCODE_MASK;
 
 
 

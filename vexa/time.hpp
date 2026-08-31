@@ -49,6 +49,8 @@ class VX_NODISCARD Duration
 {
     ValueType m_nanos = 0;
 
+    Duration(void* null, ValueType nanos): m_nanos(nanos) {}
+
 public:
     using ValueT = ValueType;
     static constexpr auto RATIO = t_ratio;
@@ -66,11 +68,11 @@ public:
     constexpr Duration& operator-= (const Duration& duration) noexcept {
         m_nanos -= duration.m_nanos;  return *this;
     }
-    friend constexpr Duration operator+ (Duration left, const Duration& right) noexcept {
-        left += right;  return left;
+    constexpr Duration operator+ (const Duration& other) const noexcept {
+        return Duration{nullptr, m_nanos + other.m_nanos};
     }
-    friend constexpr Duration operator- (Duration left, const Duration& right) noexcept {
-        left -= right;  return left;
+    constexpr Duration operator- (const Duration& other) const noexcept {
+        return Duration{nullptr, m_nanos - other.m_nanos};
     }
 
 
@@ -100,7 +102,7 @@ public:
 
     // main ctor
     template<DurationConcept DurationT>
-    explicit constexpr TimePoint(DurationT dur_since_epoch): m_since_epoch(dur_since_epoch) {}
+    constexpr TimePoint(DurationT dur_since_epoch): m_since_epoch(dur_since_epoch) {}
 
     // { +=, -=, +, - } operators
     // <Date> += <DurationT>
@@ -114,16 +116,16 @@ public:
         return *this;
     }
     // <Date> + <DurationT>
-    friend constexpr TimePoint operator+ (TimePoint date, DurationT duration) noexcept {
-        return date += duration;
+    constexpr TimePoint operator+ (DurationT duration) noexcept {
+        return {.m_since_epoch = m_since_epoch + duration};
     }
     // <Date> - <DurationT>
-    friend constexpr TimePoint operator- (TimePoint date, DurationT duration) noexcept {
-        return date -= duration;
+    constexpr TimePoint operator- (DurationT duration) noexcept {
+        return {.m_since_epoch = m_since_epoch - duration};
     }
     // <Date> - <Date>
-    friend constexpr DurationT operator- (const TimePoint& left, const TimePoint& right) noexcept {
-        return left.m_since_epoch - right.m_since_epoch;
+    constexpr DurationT operator- (const TimePoint& other) noexcept {
+        return DurationT{m_since_epoch - other.m_since_epoch};
     }
 
 

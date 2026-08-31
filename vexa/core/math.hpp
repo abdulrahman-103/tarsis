@@ -4,6 +4,51 @@
 NAMESPACE_BEGIN(vexa)
 NAMESPACE_BEGIN(math)
 
+
+//  SQRT (consteval)  //
+template<uint8 iterations = 64>
+consteval auto sqrtCT(auto x) {
+    using T = decltype(x);
+
+    CASSERT(x < CAST<T>(0),
+        "sqrt of negative number is undefined"
+    );
+
+    // is 0 or NAN
+    if (x == T{0} || x != x) {
+        return x;
+    }
+
+    T curr = (x < T{1})? (T{1}):(x);
+    for (uint8 i=0;  i < iterations;  ++i) {
+        curr = (curr + x / curr) * 0.5;
+    }
+    return curr;
+}
+
+//  SQRT  //
+constexpr inline auto sqrt(fp32 x) -> decltype(x) {
+    return std::sqrtf(x);
+}
+constexpr inline auto sqrt(fp64 x) -> decltype(x) {
+    return std::sqrt(x);
+}
+
+
+//  POW  //
+constexpr inline fp32 pow(fp32 x, fp32 exp) noexcept {
+    return std::powf(x, exp);
+}
+constexpr inline fp64 pow(fp64 x, fp64 exp) noexcept {
+    return std::pow(x, exp);
+}
+
+
+
+
+
+inline NAMESPACE_BEGIN(constants)
+
 // compile time PI as fp32 and fp64
 constexpr fp32 PI32 = 3.14159265f;
 constexpr fp64 PI64 = 3.14159265358979323846;
@@ -11,56 +56,53 @@ constexpr fp64 PI64 = 3.14159265358979323846;
 constexpr fp32 PI32_INV = 1.0f/3.14159265f;
 constexpr fp64 PI64_INV = 1.0f/3.14159265358979323846;
 
+constexpr fp32 SQRT2 = sqrtCT(2);
+constexpr fp32 SQRT2_INV = 1.0f / SQRT2;
 
-// consteval sqrt for fp32
-template <const fp32 x>
-consteval inline auto sqrt_fp32_CT() -> decltype(x) {
-    return std::sqrtf(x);
-}
-// consteval sqrt for fp64
-template <const fp64 x>
-consteval inline auto sqrt_fp64_CT() -> decltype(x) {
-    return std::sqrt(x);
-}
-// sqrt for fp32
-template <const fp32 x>
-constexpr inline auto sqrt_fp32() -> decltype(x) {
-    return std::sqrtf(x);
-}
-// sqrt for fp64
-template <const fp64 x>
-constexpr inline auto sqrt_fp64() -> decltype(x) {
-    return std::sqrt(x);
-}
-// generic sqrt for metaprogramming
-template<typename FloatT>
-constexpr inline auto sqrt(FloatT x) {
-    if constexpr (is_same_t<fp32, FloatT>) return std::sqrtf(x);
-    else if constexpr (is_same_t<fp64, FloatT>) return std::sqrt(x);
-    else static_assert(true, "invalid type");
-}
+NAMESPACE_END(constants)
 
 
-// sqrt for fp32
-constexpr inline fp32 pow(fp32 x, fp32 exp) noexcept {
-    return std::powf(x, exp);
-}
-// pow for fp64
-constexpr inline fp64 pow(fp64 x, fp64 exp) noexcept {
-    return std::pow(x, exp);
-}
 
 
 
 // convert radians to degrees
-constexpr fp32 toDegrees(fp32 radians) noexcept {
-    return radians * 180.f * PI32_INV;
+constexpr inline fp32 toDegrees(fp32 radians) noexcept {
+    return radians * 180.0f * PI32_INV;
+}
+constexpr inline fp64 toDegrees(fp64 radians) noexcept {
+    return radians * 180.0 * PI64_INV;
 }
 // convert degrees to radians
-constexpr fp32 toRadians(fp32 degrees) noexcept {
-    return degrees * (PI32 / 180.f);
+constexpr inline fp32 toRadians(fp32 degrees) noexcept {
+    return degrees * (PI32 / 180.0f);
+}
+constexpr inline fp64 toRadians(fp64 degrees) noexcept {
+    return degrees * (PI64 / 180.0);
 }
 
+
+
+//  Trigonometry  //
+// sin
+constexpr fp32 sin(fp32 rad) { return std::sinf(rad); }
+constexpr fp64 sin(fp64 rad) { return std::sin(rad); }
+constexpr fp32 sinDeg(fp32 deg) { return std::sinf(toRadians(deg)); }
+constexpr fp64 sinDeg(fp64 deg) { return std::sin(toRadians(deg)); }
+// cos
+constexpr fp32 cos(fp32 rad) { return std::cosf(rad); }
+constexpr fp64 cos(fp64 rad) { return std::cos(rad); }
+constexpr fp32 cosDeg(fp32 deg) { return std::cosf(toRadians(deg)); }
+constexpr fp64 cosDeg(fp64 deg) { return std::cos(toRadians(deg)); }
+// tan
+constexpr fp32 tan(fp32 rad) { return std::tanf(rad); }
+constexpr fp64 tan(fp64 rad) { return std::tan(rad); }
+constexpr fp32 tanDeg(fp32 deg) { return std::tanf(toRadians(deg)); }
+constexpr fp64 tanDeg(fp64 deg) { return std::tan(toRadians(deg)); }
+// cot
+constexpr fp32 cot(fp32 rad) { return 1.0f / std::tanf(rad); }
+constexpr fp64 cot(fp64 rad) { return 1.0 / std::tan(rad); }
+constexpr fp32 cotDeg(fp32 deg) { return 1.0f / std::tanf(toRadians(deg)); }
+constexpr fp64 cotDeg(fp64 deg) { return 1.0 / std::tan(toRadians(deg)); }
 
 
 // return clamped value of @arg value between @arg min and @arg max

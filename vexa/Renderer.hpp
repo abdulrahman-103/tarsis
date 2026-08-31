@@ -32,11 +32,11 @@ class VX_NODISCARD Renderer
 public:
     using Cfg = M_Cfg;
 
-    explicit Renderer(Cfg config = Cfg{});
+    Renderer(Cfg config = Cfg{});
+    // rule of 5
     ~Renderer();
     Renderer(Renderer&& other) noexcept;
     Renderer& operator= (Renderer&& other) noexcept;
-    // delete
     Renderer (const Renderer& copy_ctor) = delete;
     Renderer& operator= (const Renderer& copy_operator) = delete;
 
@@ -45,6 +45,7 @@ public:
     bool exists();
 
     Renderer& setVsync(bool enabled = true);
+    bool getVsync();
 
     void start();
     void start(ColorU8 color);
@@ -70,11 +71,13 @@ public:
     template<usize N> void rectLinesN(Rect (&rectangle_array)[N], ColorU8 color);
     template<usize N> void rectLinesN(Rect (&rectangle_array)[N], ColorF32 color);
     //
-    void PolyFill(Vec2 size, Vec2 pos, ColorU8 color);
-    void PolyLines(Vec2 size, Vec2 pos, ColorU8 color);
+    void PolyFill(Vec2 pos, Vec2 size, ColorU8 color);
+    void PolyLines(Vec2 pos, Vec2 size, ColorU8 color);
     //
-    void circleFill(Vec2 size, Vec2 pos, ColorU8 color);
-    void circleLines(Vec2 size, Vec2 pos, ColorU8 color);
+    void circleFill(Circle circle, ColorF32 color, fp32 quality = Circle::NORMAL);
+    void circleFill(Circle circle, ColorU8 color, fp32 quality = Circle::NORMAL);
+    void circleLines(Circle circle, ColorU8 color);
+    void circleLines(Circle circle, ColorF32 color);
 };
 
 NAMESPACE_END(vexa)

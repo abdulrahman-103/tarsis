@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <random>
-#include "vexa/Event.hpp"
-#include "vexa/core/Key.hpp"
-#include "vexa/core/colors.hpp"
-#include "vexa/core/vec.hpp"
 #include "vexa/vexa.hpp"
 
 int fps = 60;
@@ -1004,9 +1000,8 @@ int main()
 {
     int real_y = 720;
     int real_x = real_y / 2;
-
-    int block_length = real_x / 10;
-    int block_margin = block_length / 15;
+    float block_length = real_x / 10.0f;
+    float block_margin = block_length / 15.0f;
     float gravity_timer = 0.0f;
     float gravity_timer_interval = 500.0f;
     float fast_gravity_interval = gravity_timer_interval/8;
@@ -1014,10 +1009,8 @@ int main()
     const float clear_row_timer_interval = 200.0f;
     float spawn_timer = 0.0f;
     const float spawn_timer_interval = 250.0f;
-    float sideways_timer = 0.0f;
-    const float sideways_timer_interval = 100.0f;
 
-    char grid[20][10] = {0};  
+    char grid[20][10] = {0};
     PieceType random_piece = static_cast<PieceType>(random(0, 6));
     place_piece(random_piece, grid);
 
@@ -1034,6 +1027,7 @@ int main()
         .create();
     
     window.setResizable(true);
+    window.setAspectRatio(0.5, 0.5);
 
     auto& gfx = window.renderer();
 
@@ -1042,17 +1036,12 @@ int main()
     bool running = true;
     while (running)
     {
+        block_length = window.size().x / 10.0f;
+        block_margin = block_length / 15.0f;
+
+
         // poll events
         while (auto event = Event::Poll()) {
-
-            if (sideways_timer >= sideways_timer_interval){
-                sideways_timer -= sideways_timer_interval;
-                right(grid);
-            }
-            if (sideways_timer >= sideways_timer_interval){
-            sideways_timer -= sideways_timer_interval;
-            left(grid);
-            }
             switch (event->type()) {
                 case Event::QUIT: { running = false; break; }
                 case Event::KEY_DOWN: {
@@ -1060,45 +1049,27 @@ int main()
                     if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
                         gravity_timer_interval = fast_gravity_interval;
                     }
-                    else if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
-                        sideways_timer += frametime;
-                    }
-                    else if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
-                        sideways_timer += frametime;
-                    }
-                    if (!released){
-                        break;
-                    }
-                    // pressed
+
                     if (event->kb().key == Key::ESC) { running = false; }
-                    else if (event->kb().key == Key::X || event->kb().key == Key::UP || event->kb().key == Key::W) {
+                    
+                    if ((event->kb().key == Key::X || event->kb().key == Key::UP || event->kb().key == Key::W) && !event->kb().repeated) {
                         rotate(grid, true);
                     }
-                    else if (event->kb().key == Key::Z) {
+                    if (event->kb().key == Key::Z && !event->kb().repeated) {
                         rotate(grid, false);
                     }
-                    else if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
+                    if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
                         physics(grid);
-                        gravity_timer = 0.0f;
                     }
-                    else if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
-                        right(grid);
-                        sideways_timer -= 250.0f;
-                    }
-                    else if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
+                    if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
+                        right(grid);                    }
+
+                    if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
                         left(grid);
-                        sideways_timer -= 250.0f;
                     }
                 }
                 case Event::KEY_UP: {
-                    released = true;
-                    if (event->kb().key == Key::D || event->kb().key == Key::RIGHT) {
-                        sideways_timer = 0.0f;
-                    }
-                    else if (event->kb().key == Key::A || event->kb().key == Key::LEFT) {
-                        sideways_timer = 0.0f;
-                    }
-                    else if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
+                    if (event->kb().key == Key::S || event->kb().key == Key::DOWN) {
                         gravity_timer_interval = 500.0f;
                     }
                 }
@@ -1106,8 +1077,6 @@ int main()
             }
         }
         
-
-
         gravity_timer += frametime;
         if (gravity_timer >= gravity_timer_interval){
             gravity_timer -= gravity_timer_interval;
@@ -1125,23 +1094,6 @@ int main()
                 random_piece = static_cast<PieceType>(random(0, 6));
                 place_piece(random_piece, grid);
             }
-        }
-
-        // preserve window aspect ratio
-        if (window.size() != old_size){
-            auto real_x = window.size().x;
-            auto real_y = window.size().y;
-            block_length = real_x / 10;
-            block_margin = block_length / 15;
-            x = real_x - block_margin;
-            y = real_y - block_margin;
-            if (window.size().x != old_size.x){
-                window.setSize(Vec2i(x,x * 2));
-            }
-            else{
-                window.setSize(Vec2i(y / 2, y));
-            }
-            old_size = window.size();
         }
 
         gfx.start(ColorU8::BLACK);
